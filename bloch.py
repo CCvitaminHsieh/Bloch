@@ -90,7 +90,7 @@ if __name__ == '__main__':
                 array.append(1)
         return array
     vin = square_pulse2(xlist)
-    qb_sig_evo = Bloch_Equation(init_sigma_status, qb_param, ke, tlist)
+    qb_sig_evo = Bloch(init_sigma_status, qb_param, ke, tlist)
     result = qb_sig_evo.sigma_evolution(vin)
 
     print(result[:, 2])
