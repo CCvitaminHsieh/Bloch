@@ -1,2 +1,3 @@
 # Bloch
-Simulation practice for atom-field interaction between a superconducting artificial atom of a two-level system
+
+Simulation practice about atom-field interaction between a two-level system and a microwave pulse.
