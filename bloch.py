@@ -86,8 +86,7 @@ class Bloch:
                 evo_result[tag])
             plt.show()
         else:
-            raise KeyError (
-                f'"{tag}" is not found.')
+            raise KeyError (f'"{tag}" is not found.')
 
 
 if __name__ == '__main__':
