@@ -22,10 +22,33 @@ class Bloch:
         self.t_current = self.tstart
         # initial incident light
         self.vin = None
-        #   
         self.sigma_x = np.array([])
         self.sigma_y = np.array([])
         self.sigma_z = np.array([])
+        
+    def evolution(self):
+        self.evo_result = {
+            'sigma_x': self.sigma_x,
+            'sigma_y': self.sigma_y,
+            'sigma_z': self.sigma_z,
+            'pe': (1 + self.sigma_z) / 2
+            }
+        if not isinstance(self.vin, np.ndarray):
+            raise TypeError(
+                    'Lack of the information about incident light '+\
+                    'due to the invalid value "self.vin=None".')
+        else:
+            sigma_items = list(np.zeros(len(self.vin)))
+            idx = 0
+            # use runge-kutta-4 to calculate the next iteration of sigma
+            while self.t_current < self.tstop:
+                sigma_items[idx] = self._rk4()
+                idx += 1
+            sigma_items = np.array(sigma_items)
+            # self.sigma_x, self.sigma_y, self.sigma_z =\
+            #     sigma_items[:, 0], sigma_items[:, 1], sigma_items[:, 2]
+            for idx, quant in enumerate(('x', 'y', 'z')):
+                self.evo_result[f'sigma_{quant}'] = sigma_items[:, idx]
 
     def _bloch_eq(
             self,
@@ -58,33 +81,14 @@ class Bloch:
         self.t_current += self.dt
         return self.sigma_status
 
-    def evolution(self):
-        if not isinstance(self.vin, np.ndarray):
-            raise TypeError(
-                    'Lack of the information about incident light '+\
-                    'due to the invalid value "self.vin=None".')
-        else:
-            sigma_items = list(np.zeros(len(self.vin)))
-            idx = 0
-            # use runge-kutta-4 to calculate the next iteration of sigma
-            while self.t_current < self.tstop:
-                sigma_items[idx] = self._rk4()
-                idx += 1
-            sigma_items = np.array(sigma_items)
-            self.sigma_x, self.sigma_y, self.sigma_z =\
-                sigma_items[:, 0], sigma_items[:, 1], sigma_items[:, 2]
-    
     def plot(self, tag = 'sigma_z'):
-        evo_result = {
-            'sigma_x': self.sigma_x,
-            'sigma_y': self.sigma_y,
-            'sigma_z': self.sigma_z,
-            'pe': (1 + self.sigma_z) / 2
-            }
-        if tag in evo_result.keys():
+        if tag in self.evo_result.keys():
             plt.plot(
-                np.linspace(self.tstart, self.tstop, len(self.sigma_x)),
-                evo_result[tag])
+                np.linspace(
+                    self.tstart,
+                    self.tstop,
+                    int(abs(self.tstop - self.tstart) / self.dt)),
+                self.evo_result[tag])
             plt.show()
         else:
             raise KeyError (f'"{tag}" is not found.')
