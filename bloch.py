@@ -5,94 +5,108 @@ MHz = 10**6
 
 # two-level evolution
 class Bloch:
-    def __init__(self, init_sigma_status: list, qb_param: list,
-                 ke: float, tlist: list):
-        self.sigma_status = init_sigma_status
-        self.qb_param = qb_param
-        self.ke = ke
-        self.tstart = tlist[0]
-        self.tstop = tlist[1]
-        self.dt = tlist[2]
+    def __init__(
+            self,
+            qb_param: list,
+            t: list):
+        # initial state is at ground state
+        self.sigma_status = [0, 0, -1]
+        # qubit properties
+        self.rabi_freq = qb_param[0]
+        self.relax = qb_param[1]
+        self.decoh = qb_param[2] 
+        self.detun = qb_param[3]
+        # set the initial config of time-axis
+        self.tstart, self.tstop, self.dt = t[0], t[1], t[2]
         self.t_current = self.tstart
-        self.vin = np.array([])
+        # initial incident light
+        self.vin = None
+        # pauli 
+        self.sigma_x = np.array([])
+        self.sigma_y = np.array([])
+        self.sigma_z = np.array([])
 
-    def _sigma_dot(self, current_sigma_status, t):
-        rabi_freq = self.qb_param[0]
-        relax = self.qb_param[1]
-        decoh = self.qb_param[2] 
-        detun = self.qb_param[3]
-        #
-        current_Vin = self.vin[int(t/self.dt)]
-        Omega = rabi_freq * current_Vin
-        #
+    def _bloch_eq(
+            self,
+            current_sigma_status,
+            t):
+
+        Omega = self.rabi_freq * self.vin[int(t/self.dt)]
         bloch_eq_matrix = np.array([
-            [-1, -detun/decoh, 0.5*np.real(Omega)/decoh],
-            [detun_rate/decoh, -1, 0.5*-np.imag(Omega)*0],
-            [-2*np.real(Omega)/decoh, 2*np.imag(Omega)*0, -relax/decoh]])
-        offset = np.array([0, 0, relax/decoh])
-        #
-        current_sigma_evo = 2*np.pi*(np.dot(
-            bloch_eq_matrix, current_sigma_status) - offset)
+            [-1, -self.detun/self.decoh, 0.5 * np.real(Omega) / self.decoh],
+            [self.detun/self.decoh, -1, 0.5*-np.imag(Omega)*0],
+            [-2*np.real(Omega)/self.decoh, 2*np.imag(Omega)*0, -self.relax/self.decoh]])
+        offset = np.array([0, 0, self.relax/self.decoh])
+        # optical bloch equation in two-level system
+        next_sigma_items = 2 * np.pi * (
+            np.dot(bloch_eq_matrix, current_sigma_status) - offset)
+        return next_sigma_items
 
-        return current_sigma_evo
-
-    def _range_kutta_4(self):
-        k1 = self.dt * self._sigma_dot(self.sigma_status,
-                                       self.t_current)
-        k2 = self.dt * \
-            self._sigma_dot(self.sigma_status+0.5*k1,
-                            self.t_current+0.5*self.dt)
-        k3 = self.dt * \
-            self._sigma_dot(self.sigma_status+0.5*k2,
-                            self.t_current+0.5*self.dt)
-        k4 = self.dt * self._sigma_dot(self.sigma_status+k3, self.t_current)
+    def _rk4(self):
+        # refer from: https://en.wikipedia.org/wiki/Runge%E2%80%93Kutta_methods
+        k1 = self.dt * self._bloch_eq(
+            self.sigma_status, self.t_current)
+        k2 = self.dt * self._bloch_eq(
+            self.sigma_status+0.5*k1, self.t_current+0.5*self.dt)
+        k3 = self.dt * self._bloch_eq(
+            self.sigma_status+0.5*k2, self.t_current+0.5*self.dt)
+        k4 = self.dt * self._bloch_eq(
+            self.sigma_status+k3, self.t_current)
 
         self.sigma_status = self.sigma_status + \
             (k1 + 2*k2 + 2*k3 + k4)/6
         self.t_current += self.dt
         return self.sigma_status
 
-    def _setVinArray(self, incident_wave_arr):
-        self.vin = incident_wave_arr
-
-    def sigma_evolution(self, incident_wave_arr):
-        sigma_collection = list(np.zeros(len(incident_wave_arr)))
-        self._setVinArray(incident_wave_arr)
-        idx = 0
-        while self.t_current < self.tstop:
-            # use rk4 to calculate the next iteration of sigma
-            sigma_collection[idx] = self._range_kutta_4()
-            idx += 1
-        return np.array(sigma_collection)
+    def evolution(self):
+        if not isinstance(self.vin, np.ndarray):
+            raise TypeError('Lack of the information about incident light.')
+        else:
+            sigma_items = list(np.zeros(len(self.vin)))
+            idx = 0
+            # use runge-kutta-4 to calculate the next iteration of sigma
+            while self.t_current < self.tstop:
+                sigma_items[idx] = self._rk4()
+                idx += 1
+            sigma_items = np.array(sigma_items)
+            self.sigma_x, self.sigma_y, self.sigma_z =\
+                sigma_items[:, 0], sigma_items[:, 1], sigma_items[:, 2]
+    
+    def plot(self, tag = 'sigma_z'):
+        if tag == 'sigma_x':
+            plt.plot(self.sigma_x)
+        elif tag == 'sigma_y':
+            plt.plot(self.sigma_y)
+        elif tag == 'sigma_z':
+            plt.plot(self.sigma_z)
+        plt.show()
 
 
 if __name__ == '__main__':
-    # sx, sy, sz
-    init_sigma_status = [0, 0, -1]
+    # generate a pulse
+    def square_pulse(t_array, offset):
+        y = np.zeros(
+            int((t_array[1] - t_array[0]) / t_array[2]))
+        for idx, t in enumerate(
+                np.linspace(t_array[0], t_array[1], len(y))):
+            y[idx] = 0 if (t <= offset[0] or t >= offset[1]) else 1
+        return y
+
     # qb_param
-    rabi_freq =  9*MHz
-    relax_rate = 6*MHz
-    decoh_rate = 3*MHz
-    detun_rate = 0*MHz
+    rabi_freq =  18 * MHz
+    relax_rate = 6 * MHz
+    decoh_rate = 3 * MHz
+    detun_rate = 0 * MHz
     qb_param = [rabi_freq, relax_rate, decoh_rate, detun_rate]
-    # atom-field coupling constant
-    ke = 7.9 * 10**15
+    
     # time list
-    tlist = [0, 1000*10**(-9)*decoh_rate, 1*10**(-9)*decoh_rate]
-    xlist = [0, 1000, 1]
+    t = np.array([0, 1000, 1]) *10**(-9)*decoh_rate
+    offset = np.array([200, 400]) *10**(-9)*decoh_rate
 
-    def square_pulse2(time):
-        array = []
-        for t in range(time[0], time[1], time[2]):
-            if t <= 200 or t >= 400:
-                array.append(0)
-            else:
-                array.append(1)
-        return array
-    vin = square_pulse2(xlist)
-    qb_sig_evo = Bloch(init_sigma_status, qb_param, ke, tlist)
-    result = qb_sig_evo.sigma_evolution(vin)
-
-    print(result[:, 2])
-    plt.plot(result[:, 2])
-    plt.show()
+    # simulation
+    qb = Bloch(qb_param, t)
+    qb.vin = square_pulse(t, offset)
+    qb.evolution()
+    
+    # plot evolution
+    qb.plot('sigma_z')
