@@ -60,7 +60,9 @@ class Bloch:
 
     def evolution(self):
         if not isinstance(self.vin, np.ndarray):
-            raise TypeError('Lack of the information about incident light.')
+            raise TypeError(
+                    'Lack of the information about incident light '+\
+                    'due to the invalid value "self.vin=None".')
         else:
             sigma_items = list(np.zeros(len(self.vin)))
             idx = 0
