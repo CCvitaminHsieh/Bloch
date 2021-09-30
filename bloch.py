@@ -45,8 +45,6 @@ class Bloch:
                 sigma_items[idx] = self._rk4()
                 idx += 1
             sigma_items = np.array(sigma_items)
-            # self.sigma_x, self.sigma_y, self.sigma_z =\
-            #     sigma_items[:, 0], sigma_items[:, 1], sigma_items[:, 2]
             for idx, quant in enumerate(('x', 'y', 'z')):
                 self.evo_result[f'sigma_{quant}'] = sigma_items[:, idx]
 
