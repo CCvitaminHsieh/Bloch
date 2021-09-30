@@ -21,7 +21,7 @@ class Bloch:
         self.t_current = self.tstart
         # initial incident light
         self.vin = None
-        # pauli 
+        #   
         self.sigma_x = np.array([])
         self.sigma_y = np.array([])
         self.sigma_z = np.array([])
@@ -30,7 +30,6 @@ class Bloch:
             self,
             current_sigma_status,
             t):
-
         Omega = self.rabi_freq * self.vin[int(t/self.dt)]
         bloch_eq_matrix = np.array([
             [-1, -self.detun/self.decoh, 0.5 * np.real(Omega) / self.decoh],
@@ -75,13 +74,20 @@ class Bloch:
                 sigma_items[:, 0], sigma_items[:, 1], sigma_items[:, 2]
     
     def plot(self, tag = 'sigma_z'):
-        if tag == 'sigma_x':
-            plt.plot(self.sigma_x)
-        elif tag == 'sigma_y':
-            plt.plot(self.sigma_y)
-        elif tag == 'sigma_z':
-            plt.plot(self.sigma_z)
-        plt.show()
+        evo_result = {
+            'sigma_x': self.sigma_x,
+            'sigma_y': self.sigma_y,
+            'sigma_z': self.sigma_z,
+            'pe': (1 + self.sigma_z) / 2
+            }
+        if tag in evo_result.keys():
+            plt.plot(
+                np.linspace(self.tstart, self.tstop, len(self.sigma_x)),
+                evo_result[tag])
+            plt.show()
+        else:
+            raise KeyError (
+                f'"{tag}" is not found.')
 
 
 if __name__ == '__main__':
