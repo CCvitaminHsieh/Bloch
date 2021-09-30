@@ -7,8 +7,9 @@ MHz = 10**6
 class Bloch:
     def __init__(
             self,
-            qb_param: list,
-            t: list):
+            t: list,
+            qb_param: list
+            ):
         # initial state is at ground state
         self.sigma_status = [0, 0, -1]
         # qubit properties
@@ -106,13 +107,13 @@ if __name__ == '__main__':
     detun_rate = 0 * MHz
     qb_param = [rabi_freq, relax_rate, decoh_rate, detun_rate]
     
-    # time list
+    # create time properties
     t = np.array([0, 1000, 1]) *10**(-9)*decoh_rate
-    offset = np.array([200, 400]) *10**(-9)*decoh_rate
+    square_pulse_offset = np.array([200, 400]) *10**(-9)*decoh_rate
 
     # simulation
-    qb = Bloch(qb_param, t)
-    qb.vin = square_pulse(t, offset)
+    qb = Bloch(t, qb_param)
+    qb.vin = square_pulse(t, square_pulse_offset)
     qb.evolution()
     
     # plot evolution
