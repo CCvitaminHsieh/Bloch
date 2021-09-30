@@ -63,6 +63,7 @@ class Bloch:
             (k1 + 2*k2 + 2*k3 + k4)/6
         self.t_current += self.dt
         return self.sigma_status
+    
     def _bloch_eq(
             self,
             current_sigma_status,
