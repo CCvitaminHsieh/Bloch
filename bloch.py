@@ -48,21 +48,6 @@ class Bloch:
             for idx, quant in enumerate(('x', 'y', 'z')):
                 self.evo_result[f'sigma_{quant}'] = sigma_items[:, idx]
 
-    def _bloch_eq(
-            self,
-            current_sigma_status,
-            t):
-        Omega = self.rabi_freq * self.vin[int(t/self.dt)]
-        bloch_eq_matrix = np.array([
-            [-1, -self.detun/self.decoh, 0.5 * np.real(Omega) / self.decoh],
-            [self.detun/self.decoh, -1, 0.5*-np.imag(Omega)*0],
-            [-2*np.real(Omega)/self.decoh, 2*np.imag(Omega)*0, -self.relax/self.decoh]])
-        offset = np.array([0, 0, self.relax/self.decoh])
-        # optical bloch equation in two-level system
-        next_sigma_items = 2 * np.pi * (
-            np.dot(bloch_eq_matrix, current_sigma_status) - offset)
-        return next_sigma_items
-
     def _rk4(self):
         # refer from: https://en.wikipedia.org/wiki/Runge%E2%80%93Kutta_methods
         k1 = self.dt * self._bloch_eq(
@@ -91,7 +76,22 @@ class Bloch:
         else:
             raise KeyError (f'"{tag}" is not found.')
 
-
+    def _bloch_eq(
+            self,
+            current_sigma_status,
+            t):
+        Omega = self.rabi_freq * self.vin[int(t/self.dt)]
+        bloch_eq_matrix = np.array([
+            [-1, -self.detun/self.decoh, 0.5 * np.real(Omega) / self.decoh],
+            [self.detun/self.decoh, -1, 0.5*-np.imag(Omega)*0],
+            [-2*np.real(Omega)/self.decoh, 2*np.imag(Omega)*0, -self.relax/self.decoh]])
+        offset = np.array([0, 0, self.relax/self.decoh])
+        # optical bloch equation in two-level system
+        next_sigma_items = 2 * np.pi * (
+            np.dot(bloch_eq_matrix, current_sigma_status) - offset)
+        return next_sigma_items
+    
+    
 if __name__ == '__main__':
     # generate a pulse
     def square_pulse(t_array, offset):
