@@ -63,19 +63,6 @@ class Bloch:
             (k1 + 2*k2 + 2*k3 + k4)/6
         self.t_current += self.dt
         return self.sigma_status
-
-    def plot(self, tag = 'sigma_z'):
-        if tag in self.evo_result.keys():
-            plt.plot(
-                np.linspace(
-                    self.tstart,
-                    self.tstop,
-                    int(abs(self.tstop - self.tstart) / self.dt)),
-                self.evo_result[tag])
-            plt.show()
-        else:
-            raise KeyError (f'"{tag}" is not found.')
-
     def _bloch_eq(
             self,
             current_sigma_status,
@@ -91,7 +78,19 @@ class Bloch:
             np.dot(bloch_eq_matrix, current_sigma_status) - offset)
         return next_sigma_items
     
-    
+    def plot(self, tag = 'sigma_z'):
+        if tag in self.evo_result.keys():
+            plt.plot(
+                np.linspace(
+                    self.tstart,
+                    self.tstop,
+                    int(abs(self.tstop - self.tstart) / self.dt)),
+                self.evo_result[tag])
+            plt.show()
+        else:
+            raise KeyError (f'"{tag}" is not found.')
+
+
 if __name__ == '__main__':
     # generate a pulse
     def square_pulse(t_array, offset):
